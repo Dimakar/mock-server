@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock Server Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .section h2 {
+            margin-top: 0;
+            color: #555;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button.danger {
+            background-color: #dc3545;
+        }
+        button.danger:hover {
+            background-color: #c82333;
+        }
+        .requests-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+        }
+        .request-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        .request-item:hover {
+            background-color: #f8f9fa;
+        }
+        .request-item:last-child {
+            border-bottom: none;
+        }
+        .method {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .path {
+            color: #666;
+        }
+        .timestamp {
+            color: #999;
+            font-size: 0.9em;
+        }
+        .status {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            color: white;
+        }
+        .status.up {
+            background-color: #28a745;
+        }
+        .status.down {
+            background-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Mock Server Dashboard</h1>
+            <p>Beeceptor-like mock server for testing and development</p>
+        </div>
+
+        <div class="section">
+            <h2>Server Status</h2>
+            <div id="status">
+                <span class="status up">UP</span>
+                <span id="stats"></span>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Add Rule</h2>
+            <form id="ruleForm">
+                <div class="form-group">
+                    <label for="ruleName">Rule Name:</label>
+                    <input type="text" id="ruleName" required>
+                </div>
+                <div class="form-group">
+                    <label for="ruleMethod">HTTP Method:</label>
+                    <select id="ruleMethod">
+                        <option value="*">Any (*)</option>
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                        <option value="PATCH">PATCH</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="rulePath">Path Pattern:</label>
+                    <input type="text" id="rulePath" placeholder="/api/users/*" required>
+                </div>
+                <div class="form-group">
+                    <label for="ruleStatusCode">Status Code:</label>
+                    <input type="number" id="ruleStatusCode" value="200" min="100" max="599">
+                </div>
+                <div class="form-group">
+                    <label for="ruleResponseBody">Response Body:</label>
+                    <textarea id="ruleResponseBody" rows="4" placeholder='{"message": "Hello World"}'></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="ruleDelay">Delay (ms):</label>
+                    <input type="number" id="ruleDelay" value="0" min="0">
+                </div>
+                <button type="submit">Add Rule</button>
+            </form>
+        </div>
+
+        <div class="section">
+            <h2>Rules</h2>
+            <button onclick="loadRules()">Refresh Rules</button>
+            <button class="danger" onclick="clearRules()">Clear All Rules</button>
+            <div id="rulesList"></div>
+        </div>
+
+        <div class="section">
+            <h2>Recorded Requests</h2>
+            <button onclick="loadRequests()">Refresh Requests</button>
+            <button class="danger" onclick="clearRequests()">Clear All Requests</button>
+            <div id="requestsList" class="requests-list"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/admin';
+
+        // Load initial data
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStatus();
+            loadRules();
+            loadRequests();
+        });
+
+        // Status
+        async function loadStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                document.getElementById('stats').textContent = 
+                    `Rules: ${data.rules}, Requests: ${data.recordedRequests}`;
+            } catch (error) {
+                console.error('Error loading status:', error);
+            }
+        }
+
+        // Rules
+        async function loadRules() {
+            try {
+                const response = await fetch(`${API_BASE}/rules`);
+                const rules = await response.json();
+                const rulesList = document.getElementById('rulesList');
+                
+                if (rules.length === 0) {
+                    rulesList.innerHTML = '<p>No rules configured</p>';
+                    return;
+                }
+
+                rulesList.innerHTML = rules.map(rule => `
+                    <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0; border-radius: 4px;">
+                        <strong>${rule.name}</strong> (${rule.method} ${rule.path})<br>
+                        Status: ${rule.statusCode} | Delay: ${rule.delay}ms | Priority: ${rule.priority}<br>
+                        <button class="danger" onclick="deleteRule('${rule.id}')">Delete</button>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading rules:', error);
+            }
+        }
+
+        async function deleteRule(ruleId) {
+            try {
+                await fetch(`${API_BASE}/rules/${ruleId}`, { method: 'DELETE' });
+                loadRules();
+                loadStatus();
+            } catch (error) {
+                console.error('Error deleting rule:', error);
+            }
+        }
+
+        async function clearRules() {
+            if (!confirm('Are you sure you want to clear all rules?')) return;
+            
+            try {
+                await fetch(`${API_BASE}/rules`, { method: 'DELETE' });
+                loadRules();
+                loadStatus();
+            } catch (error) {
+                console.error('Error clearing rules:', error);
+            }
+        }
+
+        // Rule form
+        document.getElementById('ruleForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const rule = {
+                id: '',
+                name: document.getElementById('ruleName').value,
+                method: document.getElementById('ruleMethod').value,
+                path: document.getElementById('rulePath').value,
+                statusCode: parseInt(document.getElementById('ruleStatusCode').value),
+                responseBody: document.getElementById('ruleResponseBody').value || null,
+                delay: parseInt(document.getElementById('ruleDelay').value),
+                enabled: true,
+                priority: 0
+            };
+
+            try {
+                await fetch(`${API_BASE}/rules`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(rule)
+                });
+                
+                this.reset();
+                loadRules();
+                loadStatus();
+            } catch (error) {
+                console.error('Error adding rule:', error);
+            }
+        });
+
+        // Requests
+        async function loadRequests() {
+            try {
+                const response = await fetch(`${API_BASE}/requests`);
+                const requests = await response.json();
+                const requestsList = document.getElementById('requestsList');
+                
+                if (requests.length === 0) {
+                    requestsList.innerHTML = '<p>No requests recorded</p>';
+                    return;
+                }
+
+                requestsList.innerHTML = requests.map(request => `
+                    <div class="request-item" onclick="showRequestDetails('${request.id}')">
+                        <div class="method">${request.method}</div>
+                        <div class="path">${request.path}</div>
+                        <div class="timestamp">${new Date(request.timestamp).toLocaleString()}</div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading requests:', error);
+            }
+        }
+
+        async function showRequestDetails(requestId) {
+            try {
+                const response = await fetch(`${API_BASE}/requests/${requestId}`);
+                const request = await response.json();
+                
+                alert(JSON.stringify(request, null, 2));
+            } catch (error) {
+                console.error('Error loading request details:', error);
+            }
+        }
+
+        async function clearRequests() {
+            if (!confirm('Are you sure you want to clear all recorded requests?')) return;
+            
+            try {
+                await fetch(`${API_BASE}/requests`, { method: 'DELETE' });
+                loadRequests();
+                loadStatus();
+            } catch (error) {
+                console.error('Error clearing requests:', error);
+            }
+        }
+    </script>
+</body>
+</html> 

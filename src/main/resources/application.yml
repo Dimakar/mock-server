@@ -1,0 +1,22 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: mock-server
+
+mock-server:
+  recording:
+    directory: requests
+  rules:
+    directory: rules
+  cors:
+    enabled: true
+    allowed-origins: "*"
+    allowed-methods: "*"
+    allowed-headers: "*"
+
+logging:
+  level:
+    io.hapi.mockserver: DEBUG
+    org.springframework.web: DEBUG 
