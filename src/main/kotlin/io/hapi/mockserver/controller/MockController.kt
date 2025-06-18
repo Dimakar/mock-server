@@ -34,12 +34,8 @@ class MockController(
         val recordedRequest = requestRecordingService.recordRequest(
             method = request.method,
             path = request.requestURI,
-            queryParams = request.parameterMap.mapValues { it.value.toList() },
             headers = request.headerNames.toList().associateWith { request.getHeaders(it).toList() },
-            body = body,
-            contentType = request.contentType,
-            remoteAddress = request.remoteAddr,
-            userAgent = request.getHeader("User-Agent")
+            body = body
         )
         
         logger.info("Recorded request with ID: ${recordedRequest.id}")

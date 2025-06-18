@@ -73,46 +73,33 @@ class RequestRecordingService(
     fun recordRequest(
         method: String,
         path: String,
-        queryParams: Map<String, List<String>>,
         headers: Map<String, List<String>>,
-        body: String?,
-        contentType: String?,
-        remoteAddress: String?,
-        userAgent: String?
+        body: String?
     ): RecordedRequest {
-        val timestamp = LocalDateTime.now()
-        val id = "req_${idCounter.getAndIncrement()}_${timestamp.format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS"))}"
-        
+        val timestamp = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+        val id = "req_${idCounter.getAndIncrement()}_${LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS"))}"
         logger.info("Recording request: $method $path")
-        
+        val flatHeaders = headers.mapValues { it.value.joinToString(",") }
         val recordedRequest = RecordedRequest(
             id = id,
             timestamp = timestamp,
             method = method,
             path = path,
-            queryParams = queryParams,
-            headers = headers,
-            body = body,
-            contentType = contentType,
-            remoteAddress = remoteAddress,
-            userAgent = userAgent
+            headers = flatHeaders,
+            body = body
         )
-
         recordedRequests[id] = recordedRequest
         saveRequestToFile(recordedRequest)
-        saveRequestsToFile() // Save the in-memory list too
-        
+        saveRequestsToFile()
         logger.info("Successfully recorded request with ID: $id")
         return recordedRequest
     }
 
     private fun saveRequestToFile(request: RecordedRequest) {
-        val timestamp = request.timestamp.format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS"))
+        val timestamp = request.timestamp.replace(":", "").replace("-", "").replace("T", "_")
         val safePath = request.path.replace("/", "_").replace("?", "_").replace("&", "_")
         val fileName = "${timestamp}_${request.method}_${safePath}.json"
-        
         val file = File(recordingDirectory, fileName)
-        
         try {
             val jsonContent = buildString {
                 appendLine("{")
@@ -120,23 +107,16 @@ class RequestRecordingService(
                 appendLine("  \"timestamp\": \"${request.timestamp}\",")
                 appendLine("  \"method\": \"${request.method}\",")
                 appendLine("  \"path\": \"${request.path}\",")
-                appendLine("  \"queryParams\": {")
-                request.queryParams.forEach { (key, values) ->
-                    appendLine("    \"$key\": [${values.joinToString(",") { "\"$it\"" }}],")
-                }
-                appendLine("  },")
                 appendLine("  \"headers\": {")
-                request.headers.forEach { (key, values) ->
-                    appendLine("    \"$key\": [${values.joinToString(",") { "\"$it\"" }}],")
+                request.headers.entries.forEachIndexed { idx, (key, value) ->
+                    append("    \"$key\": \"$value\"")
+                    if (idx < request.headers.size - 1) append(",")
+                    appendLine()
                 }
                 appendLine("  },")
-                appendLine("  \"body\": ${if (request.body != null) "\"${request.body.replace("\"", "\\\"")}\"" else "null"},")
-                appendLine("  \"contentType\": ${if (request.contentType != null) "\"${request.contentType}\"" else "null"},")
-                appendLine("  \"remoteAddress\": ${if (request.remoteAddress != null) "\"${request.remoteAddress}\"" else "null"},")
-                appendLine("  \"userAgent\": ${if (request.userAgent != null) "\"${request.userAgent}\"" else "null"}")
+                appendLine("  \"body\": ${if (request.body != null) "\"${request.body.replace("\"", "\\\"")}" else "null"}")
                 appendLine("}")
             }
-            
             file.writeText(jsonContent)
             logger.info("Saved request to file: ${file.absolutePath}")
         } catch (e: Exception) {
