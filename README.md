@@ -33,6 +33,27 @@ Run the test script to verify everything is working:
 ./test-mock-server.sh
 ```
 
+### 4. Stop the Application
+
+There are several ways to stop the application:
+
+#### Graceful Shutdown (Recommended)
+Press `Ctrl+C` in the terminal where the application is running. This allows the application to shut down gracefully.
+
+#### Force Kill Process on Port 8080
+If the application is running in the background or you can't access the terminal:
+
+```bash
+lsof -ti:8080 | xargs kill -9
+```
+
+#### Using the Startup Script
+If you used the provided startup script:
+
+```bash
+./start.sh stop
+```
+
 ## API Endpoints
 
 ### Mock Endpoint
