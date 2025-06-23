@@ -59,6 +59,12 @@ class AdminController(
         return ResponseEntity.ok().build()
     }
 
+    @DeleteMapping("/requests/{requestId}")
+    fun deleteRecordedRequest(@PathVariable requestId: String): ResponseEntity<Boolean> {
+        val deleted = requestRecordingService.deleteRecordedRequest(requestId)
+        return ResponseEntity.ok(deleted)
+    }
+
     // Health check endpoint
     @GetMapping("/health")
     fun health(): ResponseEntity<Map<String, Any>> {

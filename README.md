@@ -4,11 +4,13 @@ A Spring Boot application that implements Beeceptor-like functionality for mocki
 
 ## Features
 
-- **Request Recording**: All requests to `/mock/**` are automatically recorded and saved to files
-- **Rule-based Responses**: Configure custom responses based on HTTP method and path patterns
-- **Web Dashboard**: Manage rules and view recorded requests through a web interface
-- **REST API**: Full REST API for managing rules and viewing requests
-- **CORS Support**: Cross-origin requests are supported
+- **Mock Endpoints**: Accept any HTTP request and return configurable responses
+- **Rule-based Responses**: Define custom rules for specific paths and methods
+- **Request Recording**: All requests are automatically recorded with full details
+- **Persistent Storage**: Rules and requests are saved to JSON files
+- **Web Dashboard**: User-friendly interface for managing rules and viewing requests
+- **Copy Request Body**: Copy any recorded request body to clipboard with one click
+- **Individual Request Management**: Delete specific requests as needed
 - **Request Delay**: Simulate network latency with configurable delays
 
 ## Quick Start
@@ -237,4 +239,49 @@ curl http://localhost:8080/admin/requests
 
 ## License
 
-This project is licensed under the MIT License. 
+This project is licensed under the MIT License.
+
+### Web Dashboard
+
+Access the web interface at `http://localhost:8080` to:
+- View server status and statistics
+- Add and manage response rules
+- View all recorded requests
+- Copy request bodies to clipboard
+- Delete individual requests
+
+### Copy Request Body Feature
+
+The web dashboard includes a powerful copy functionality for recorded requests:
+
+#### How to Use:
+1. Open the web interface at `http://localhost:8080`
+2. Navigate to the "Recorded Requests" section
+3. Click the green **"Copy"** button next to any request
+4. The request body will be copied to your clipboard
+
+#### Features:
+- **Smart Clipboard**: Uses modern clipboard API with fallback for older browsers
+- **Visual Feedback**: Button shows different states:
+  - `Copying...` - Processing the request
+  - `Copied!` - Successfully copied to clipboard
+  - `Show Body` - Fallback when clipboard fails (shows alert)
+  - `Error` - If request fetch fails
+- **Universal Support**: Works with any content type (JSON, XML, text, etc.)
+- **Error Handling**: Graceful fallback if clipboard access is restricted
+
+#### Technical Details:
+- **Modern API**: Uses `navigator.clipboard.writeText()` when available
+- **Fallback Method**: Uses `document.execCommand('copy')` for older browsers
+- **Secure Context**: Works on localhost and HTTPS sites
+- **Manual Fallback**: Shows request body in alert if all clipboard methods fail
+
+#### Example Usage:
+```bash
+# Make a test request
+curl -X POST http://localhost:8080/mock/api/test \
+  -H "Content-Type: application/json" \
+  -d '{"user": "john", "action": "login"}'
+
+# The request will be recorded and you can copy its body via the web interface
+``` 

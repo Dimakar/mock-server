@@ -151,4 +151,15 @@ class RequestRecordingService(
             logger.info("Cleared all request files from directory")
         }
     }
+
+    fun deleteRecordedRequest(id: String): Boolean {
+        val removed = recordedRequests.remove(id) != null
+        if (removed) {
+            logger.info("Deleted recorded request: $id")
+            saveRequestsToFile()
+        } else {
+            logger.warn("Attempted to delete non-existent request: $id")
+        }
+        return removed
+    }
 } 
