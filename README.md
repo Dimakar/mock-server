@@ -10,6 +10,7 @@ A Spring Boot application that implements Beeceptor-like functionality for mocki
 - **Persistent Storage**: Rules and requests are saved to JSON files
 - **Web Dashboard**: User-friendly interface for managing rules and viewing requests
 - **Copy Request Body**: Copy any recorded request body to clipboard with one click
+- **Create Rule from Request**: Quickly create rules based on recorded requests
 - **Individual Request Management**: Delete specific requests as needed
 - **Request Delay**: Simulate network latency with configurable delays
 
@@ -270,7 +271,43 @@ The web dashboard includes a powerful copy functionality for recorded requests:
 - **Universal Support**: Works with any content type (JSON, XML, text, etc.)
 - **Error Handling**: Graceful fallback if clipboard access is restricted
 
-#### Technical Details:
+### Create Rule from Request Feature
+
+Quickly create response rules based on recorded requests:
+
+#### How to Use:
+1. Open the web interface at `http://localhost:8080`
+2. Navigate to the "Recorded Requests" section
+3. Click the blue **"Create Rule"** button next to any request
+4. The rule form will be automatically pre-populated with:
+   - **Rule Name**: "Rule for [METHOD] [PATH]"
+   - **HTTP Method**: The request method (GET, POST, PUT, DELETE, etc.)
+   - **Path Pattern**: The request path without `/mock` prefix
+   - **Status Code**: 200 (default)
+   - **Response Body**: Sample response based on request content
+   - **Delay**: 0ms (default)
+5. Review and modify the rule as needed
+6. Click "Add Rule" to create the rule
+
+#### Features:
+- **Automatic Form Population**: All fields pre-filled based on the request
+- **Smart Path Handling**: Automatically strips `/mock` prefix for rule matching
+- **Intelligent Response Templates**: 
+  - JSON requests → JSON response template
+  - XML requests → Text response template
+  - GET requests → JSON response template
+  - Complex data → Structured response template
+- **Visual Feedback**: Form scrolls into view and highlights briefly
+- **Quick Rule Creation**: Create rules in seconds instead of minutes
+
+#### Example Workflow:
+1. **Record a request**: `POST /mock/api/users` with JSON body
+2. **Click "Create Rule"**: Form pre-populates with POST method and `/api/users` path
+3. **Modify response**: Edit the sample response body as needed
+4. **Add rule**: Click "Add Rule" to save
+5. **Test**: Future requests to `/mock/api/users` will use your custom response
+
+#### Technical Details (Copy Functionality):
 - **Modern API**: Uses `navigator.clipboard.writeText()` when available
 - **Fallback Method**: Uses `document.execCommand('copy')` for older browsers
 - **Secure Context**: Works on localhost and HTTPS sites

@@ -100,6 +100,22 @@
             background-color: #ffc107;
             color: #212529;
         }
+        .create-rule-btn {
+            background-color: #17a2b8;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8em;
+            margin-left: 5px;
+        }
+        .create-rule-btn:hover {
+            background-color: #138496;
+        }
+        .create-rule-btn:active {
+            background-color: #117a8b;
+        }
         .requests-list {
             max-height: 400px;
             overflow-y: auto;
@@ -340,6 +356,7 @@
                         </div>
                         <div class="request-actions">
                             <button class="copy-btn" onclick="copyRequestBody('${request.id}')">Copy</button>
+                            <button class="create-rule-btn" onclick="createRuleFromRequest('${request.id}')">Create Rule</button>
                             <button class="danger" onclick="deleteRequest('${request.id}')">Delete</button>
                         </div>
                     </div>
@@ -476,6 +493,70 @@
                 loadStatus();
             } catch (error) {
                 console.error('Error deleting request:', error);
+            }
+        }
+
+        async function createRuleFromRequest(requestId) {
+            try {
+                const response = await fetch(`${API_BASE}/requests/${requestId}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const request = await response.json();
+                
+                // Pre-populate the rule form with request details
+                document.getElementById('ruleName').value = `Rule for ${request.method} ${request.path}`;
+                document.getElementById('ruleMethod').value = request.method;
+                
+                // Extract path without /mock prefix for rule matching
+                const pathWithoutMock = request.path.replace(/^\/mock/, '') || '/';
+                document.getElementById('rulePath').value = pathWithoutMock;
+                
+                // Set default status code
+                document.getElementById('ruleStatusCode').value = '200';
+                
+                // Pre-populate response body with a sample based on the request
+                let sampleResponse = '';
+                if (request.body) {
+                    try {
+                        // Try to parse as JSON and create a sample response
+                        const parsedBody = JSON.parse(request.body);
+                        sampleResponse = JSON.stringify({
+                            message: "Response for " + request.method + " " + pathWithoutMock,
+                            received: parsedBody,
+                            timestamp: new Date().toISOString()
+                        }, null, 2);
+                    } catch (e) {
+                        // If not JSON, create a simple text response
+                        sampleResponse = `Response for ${request.method} ${pathWithoutMock}\nReceived: ${request.body}`;
+                    }
+                } else {
+                    sampleResponse = JSON.stringify({
+                        message: "Response for " + request.method + " " + pathWithoutMock,
+                        timestamp: new Date().toISOString()
+                    }, null, 2);
+                }
+                document.getElementById('ruleResponseBody').value = sampleResponse;
+                
+                // Set default delay
+                document.getElementById('ruleDelay').value = '0';
+                
+                // Scroll to the rule form
+                document.getElementById('ruleForm').scrollIntoView({ behavior: 'smooth' });
+                
+                // Highlight the form briefly
+                const form = document.getElementById('ruleForm');
+                form.style.border = '2px solid #17a2b8';
+                setTimeout(() => {
+                    form.style.border = '1px solid #ddd';
+                }, 2000);
+                
+                console.log('Rule form pre-populated with request details:', request);
+                
+            } catch (error) {
+                console.error('Error creating rule from request:', error);
+                alert('Failed to load request details for rule creation');
             }
         }
     </script>
